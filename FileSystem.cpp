@@ -68,11 +68,11 @@ void FileSystem::splitCommand(string &str)
 		start=i;
         while(str[i]!=' ')
 			++i;
-		end=i-1;
-		//split_command[j]=str.substr(start,end-start);
+		end=i;
+		split_command[j]=str.substr(start,end-start);
 		++i;
 		++j;
     }
-	split_command[0][0]='j';
-    cout<<"0 "<<split_command[0];  
+	//split_command[0][0]='j';
+    cout<<"0 "<<split_command[0]<<"    "<<split_command[1];
 }

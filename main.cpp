@@ -6,7 +6,5 @@ using namespace std;
 int main()
 {
     FileSystem filesystem;
-    int i=10;
-    cout<<i;
     return 0;
 }

@@ -7,6 +7,10 @@
 #include <stdio.h>//文件读写
 using namespace std;
 
+#define CMD_NUM         22
+#define MAX_USER_NUM    100
+#define MUTIUSER_ACCOUNT "account"
+
 #define SUDO     0
 #define HELP     1
 #define LS       2
@@ -31,26 +35,44 @@ using namespace std;
 #define REGISTER 21
 
 
+
 typedef struct{
-    string username[10];
-    string password[10];
-    string system_name[10];
+    char username[11];
+    char password[11];
+    char group_id[11];//或许可以迟一点加上去
 }Multiuser;
 
 
 class FileSystem
 {
 private:
+    FILE* file_pointer; //记得删除文件指针
     Multiuser* multiuser;
-    char multiuser_account[8] = "account";
-    string cmd[22];
+    int user_num;
+    int cmd_type;
+    string cmd[CMD_NUM];
     string split_command[5];//最多支持四个参数
+    string current_path;
 public:
     FileSystem();
     ~FileSystem();
-    void openMultiuser();
+    void initMultiuser();
     void splitCommand(string&);
+    void discardBlank(string&);
     void command();
+
+    //command
+    void userRegister();
+    void userLogin();
+
+
+
+
+
+
+
+    //
+    void printCurrentPath();
 };
 
 #endif 

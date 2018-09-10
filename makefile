@@ -1,5 +1,3 @@
-all : build main.o FileSystem.o
-
 build : main.o FileSystem.o
 	g++ -o build main.o FileSystem.o
 main.o : main.cpp FileSystem.h

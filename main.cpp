@@ -5,6 +5,7 @@ using namespace std;
 
 int main()
 {
+    cout<<sizeof(Inode)<<endl;
     FileSystem filesystem;
     return 0;
 }

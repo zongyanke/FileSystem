@@ -39,16 +39,16 @@ FileSystem::~FileSystem()
 void FileSystem::initMultiuser()
 {
     user_num=0;
-    multiuser=new Multiuser[MAX_USER_NUM];
+    multiuser=new MultiUser[MAX_USER_COUNT];
     if ((file_pointer = fopen(MUTIUSER_ACCOUNT,"rb+"))==NULL)
     {   
         file_pointer = fopen(MUTIUSER_ACCOUNT,"wb+");
         file_pointer = fopen(MUTIUSER_ACCOUNT,"rb+");
     }
     rewind(file_pointer); //定位到文件头
-    for(int i=0;i<MAX_USER_NUM;++i)
+    for(int i=0;i<MAX_USER_COUNT;++i)
     {   
-        if(fread(&multiuser[i],sizeof(Multiuser),1,file_pointer)!=1)
+        if(fread(&multiuser[i],sizeof(MultiUser),1,file_pointer)!=1)
             break;
         ++user_num;
         cout<<"用户数"<<user_num<<endl;
@@ -139,7 +139,7 @@ void FileSystem::splitCommand(string &str)
         ++i;
         ++j;
     }
-    for(int k=0;k<CMD_NUM;++k)
+    for(int k=0;k<CMD_COUNT;++k)
         if(split_command[0]==cmd[k])
             cmd_type=k;
 }
@@ -153,12 +153,13 @@ void FileSystem::discardBlank(string& str)
 
 //unfinish
 //还差打开或者创建对应的文件系统
+//输入密码或者用户名的时候要把前面的空格去掉，暂时还没有做，先把功能完善了再说
 void FileSystem::userRegister()
 {
     cout<<"注册提示：请注意用户名和密码的最大长度为10个字符。"<<endl;
     initMultiuser();
-    Multiuser user;
-    Multiuser temp_user;
+    MultiUser user;
+    MultiUser temp_user;
     cout<<"请输入用户名：";
     while(true)
     {
@@ -223,11 +224,8 @@ void FileSystem::userRegister()
             break;
         system("stty echo");
     }
-    fgets(user.system_name,sizeof(user.system_name),stdin);
-    if(user.system_name[strlen(user.system_name)-1]=='\n')
-        user.system_name[strlen(user.system_name)-1]='\0';
     fseek(file_pointer, 0, SEEK_END);
-    fwrite(&user,sizeof(Multiuser),1,file_pointer);
+    fwrite(&user,sizeof(MultiUser),1,file_pointer);
     fclose(file_pointer);
     cout<<"注册成功，请重新登陆"<<endl;
 }
@@ -236,7 +234,7 @@ void FileSystem::userRegister()
 void FileSystem::userLogin()
 {
     initMultiuser();
-    Multiuser user;
+    MultiUser user;
     int user_id;
     cout<<"请输入用户名：";
     fgets(user.username,sizeof(user.username),stdin);

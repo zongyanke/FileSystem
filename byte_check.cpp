@@ -1,7 +1,10 @@
 #include<iostream>
+#include<time.h>
+
 using namespace std;
 
 int main()
 {
-    cout<<sizeof(int)<<endl;
+    cout<<sizeof(time_t)<<endl;
+    cout<<sizeof(unsigned int)<<endl;
 }

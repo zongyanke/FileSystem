@@ -56,11 +56,12 @@ struct SuperBlock{
 }; //28个字节
 
 //inode当中文件链表，确定文件所占用的block_id
-//指针实际上就是一串地址，所以在64位的机器上占用八个字节
 struct InodeList{
     unsigned int block_id;
-    InodeList *next_block_id;
+    unsigned int next_block_id;//下一个block的id
 };
+//在初始化的时候要建立一个二维数组来记录各种文件，且可以放进目录项中存放起来
+//在打开一个新的文件的时间要new一个一维数组来记录所有文件的inode
 
 //inode的数据结构
 struct Inode{
@@ -76,7 +77,7 @@ struct Inode{
 	time_t create_time;//文件创建时间
 	time_t last_modified_time;//文件内容上一次修改的时间
 	time_t last_open_time;//文件上一次打开的时间
-    InodeList* block_id; //16 bytes
+    unsigned int block_id; //16 bytes
 };
 
 //每一个目录项

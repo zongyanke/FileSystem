@@ -413,7 +413,10 @@ void FileSystem::printProgressBar()
 void FileSystem::readinode(unsigned int inode_id)
 {
     long offset=superblock_offset+inodelist_offset+blocklist_offset;
-    cout<<offset<<"    02"<<endl;
+    offset=offset+inode_id*sizeof(Inode);
+    fseek(file_pointer,offset,SEEK_SET);
+    fread(&current_inode,sizeof(Inode),1,file_pointer);
+    cout<<current_inode.authority<<endl;
 }
 //可以读取数据块，包括目录数据块以及文件数据块
 void FileSystem::readBlock(unsigned int block_id,unsigned int type)

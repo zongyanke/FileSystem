@@ -6,12 +6,17 @@
 #include <string.h>
 #include <stdio.h>//文件读写
 #include <time.h> //记录文件修改时间
+#include <unistd.h>
 using namespace std;
 
 #define CMD_COUNT         22
-#define MAX_USER_COUNT    100
-#define BLOCK_SIZE      1024
+#define USER_COUNT_MAX    100
+#define FILE_NAME_MAX	  256		//文件名最大长度255
+#define BLOCK_SIZE        1024
+#define BLOCK_COUNT		  102400 //块的数目，要不要把目录项这种放进计数里面
+#define INODE_COUTN		  102400 //inode的数目，占的空间的确是有点大
 #define MUTIUSER_ACCOUNT "account"
+#define SYSTEM_NAME		"FileSystem"
 
 #define SUDO     0
 #define HELP     1
@@ -38,23 +43,25 @@ using namespace std;
 
 
 
-typedef struct{
+struct MultiUser{
     char username[11];
     char password[11];
     char group_id[11];//或许可以迟一点加上去
-}MultiUser;
+};
 
 //超级块的数据结构，最后应该需要占用1024个字节
 struct SuperBlock{
     unsigned int block_size; 	//4字节
-	unsigned int block_count; 
+	unsigned int block_count;
 	unsigned int block_used;	
 	unsigned int block_free;
 	unsigned int inode_count;
 	unsigned int inode_used;
 	unsigned int inode_free;
+	unsigned int root_inode;//记录一下root的位置
 }; //28个字节
 
+//最后这个可能不要了
 //inode当中文件链表，确定文件所占用的block_id
 struct InodeList{
     unsigned int block_id;
@@ -66,14 +73,14 @@ struct InodeList{
 //inode的数据结构
 struct Inode{
 	unsigned int inode_ifentifier;//inode的编号
-	unsigned int file_type; //文件类型
+	unsigned int file_type; //文件类型,0是文件，1是目录
 	unsigned int link_count;//暂时没有加这个功能的计划
-	unsigned int own_id; //文件所有者的id
+	unsigned int own_id; //文件所有者的id ,root用户为0
 	unsigned int group_id;//所属的组的id
 	char authority[11];//文件权限，十个位
 	unsigned int file_size; //文件大小
 	unsigned int block_used_byfile; //文件使用了几个块
-	time_t inode_modified_time;//8字节 inode上一次修改的时间
+	time_t inode_modified_time;//8字节 inode上一次修改的时间       
 	time_t create_time;//文件创建时间
 	time_t last_modified_time;//文件内容上一次修改的时间
 	time_t last_open_time;//文件上一次打开的时间
@@ -82,7 +89,7 @@ struct Inode{
 
 //每一个目录项
 struct DirectoryEntry{
-    char directory_name[100];//文件名长度最大支持99个字符
+    char directory_name[FILE_NAME_MAX];//文件名长度最大支持99个字符
     unsigned int inode_identifier;//文件inode索引号
 };
 
@@ -93,13 +100,26 @@ private:
     MultiUser* multiuser;
     int user_num;
     int cmd_type;
-    string cmd[CMD_COUNT];
+    string cmd[CMD_COUNT]; //命令的个数
     string split_command[5];//最多支持四个参数
     string current_path;//当前目录
-    Inode current_inode;//当前inode
 
-    bool* inode_bitmap; //使用位图来表示inode使用情况
+	SuperBlock superblock;
+	//这三个量要看看
+	bool inodelist[INODE_COUTN];
+    unsigned int blocklist[BLOCK_COUNT];
+	Inode current_inode;//当前inode的列表，用链表还是数组有待验证
     bool* block_bitmap;
+
+	//读取文件时候指针的移动
+	unsigned int superblock_offset;
+	unsigned int inodelist_offset;
+	unsigned int blocklist_offset;
+	unsigned int single_inode_offset;
+	unsigned int total_inode_offset;
+	unsigned int single_datablock_offset;
+	unsigned int total_datablock_offset;
+	unsigned int auto_offset;
 public:
     FileSystem();
     ~FileSystem();
@@ -107,6 +127,7 @@ public:
     void splitCommand(string&);
     void discardBlank(string&);
     void command();
+	void initFileSyatem();
 
     //command
     void userRegister();
@@ -115,6 +136,7 @@ public:
 
     //
     void printCurrentPath();
+	void printProgressBar();
 };
 
 #endif 

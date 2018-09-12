@@ -24,29 +24,110 @@ FileSystem::FileSystem()
     cmd[19]="rename";
     cmd[20]="login";
     cmd[21]="register";
-	cout<<"请输入命令选择注册或者登陆：";
-    while(true)
-		command();
+    initFileSyatem();
+    //到底是注册登陆之后才初始化系统还是先初始化系统
+	// cout<<"请输入命令选择注册或者登陆：";
+    // while(true)
+	// 	command();
 }
 FileSystem::~FileSystem()
 {
     delete file_pointer;
-
     delete[] multiuser;
 }
 
+void FileSystem::initFileSyatem()
+{
+    cout<<"正在初始化，请稍后"<<endl;
+    superblock_offset=sizeof(SuperBlock);
+    inodelist_offset=sizeof(inodelist);
+    blocklist_offset=sizeof(blocklist);
+    single_inode_offset=sizeof(Inode);
+    total_inode_offset=single_inode_offset*INODE_COUTN;
+    single_datablock_offset=BLOCK_SIZE;
+    total_datablock_offset=single_datablock_offset*BLOCK_COUNT;
+    //printProgressBar();//到时候可能加一些多进程的东西进去
+    if ((file_pointer = fopen(SYSTEM_NAME,"rb+"))==NULL)
+    {   
+        superblock.block_size=BLOCK_SIZE;
+        superblock.block_count=BLOCK_COUNT;
+        superblock.block_used=1;//分配一个给root
+        superblock.block_free=superblock.block_count-superblock.block_used;
+        superblock.inode_count=INODE_COUTN;
+        superblock.inode_used=1;//分配一个给root
+        superblock.inode_free=superblock.inode_count-superblock.block_used;
+        superblock.root_inode=0;//要不要从0开始算呢
+        file_pointer = fopen(SYSTEM_NAME,"wb+");
+        fwrite(&superblock,sizeof(SuperBlock),1,file_pointer); //初始化superblock
+        
+        inodelist[0]=true;//root
+        for(int i=1;i<INODE_COUTN;++i)
+            inodelist[i]=false;
+        fwrite(&inodelist,sizeof(inodelist),1,file_pointer);
+
+
+        blocklist[0]=-1;//代表已经到了文件末尾
+        for(int i=1;i<BLOCK_COUNT;++i)
+            blocklist[i]=0;
+        fwrite(&blocklist,sizeof(blocklist),1,file_pointer);
+
+        //root
+        current_inode.block_id=0;
+        current_inode.file_type=1;
+        current_inode.link_count=1;
+        current_inode.own_id=0;
+        current_inode.group_id=0;
+        strcpy(current_inode.authority,"drwx------");
+        current_inode.file_size=sizeof(DirectoryEntry);
+        current_inode.block_used_byfile=1;
+        current_inode.block_id=0;
+        fwrite(&current_inode,sizeof(current_inode),1,file_pointer);
+        for(int i=1;i<INODE_COUTN;++i)
+        {
+            current_inode.block_id=-1;
+            current_inode.file_type=-1;
+            current_inode.link_count=-1;
+            current_inode.own_id=-1;
+            current_inode.group_id=-1;
+            char authority[11]="----------";
+            strcpy(current_inode.authority,authority);
+            current_inode.file_size=sizeof(DirectoryEntry);
+            current_inode.block_used_byfile=1;
+            current_inode.block_id=0;
+            fwrite(&current_inode,sizeof(Inode),1,file_pointer);
+        }
+
+        char temp[BLOCK_SIZE];
+        for (int i = 0; i < BLOCK_SIZE; i++)
+            temp[i]='-';
+        for (int i = 0; i < BLOCK_COUNT; i++)  
+            fwrite(&temp,sizeof(temp),1,file_pointer);
+    }
+    //仅做测试
+    rewind(file_pointer); 
+    fread(&superblock,sizeof(SuperBlock),1,file_pointer);//写入成功
+    fread(&inodelist,sizeof(inodelist),1,file_pointer);//写入成功
+    fread(&blocklist,sizeof(blocklist),1,file_pointer);//写入成功
+    fread(&current_inode,sizeof(Inode),1,file_pointer);//写入成功
+    fread(&current_inode,sizeof(Inode),1,file_pointer);
+    for(int i=0;i<INODE_COUTN;++i)
+        fread(&current_inode,sizeof(Inode),1,file_pointer);
+    char buf[90000];
+    fread(&buf,sizeof(buf),1,file_pointer); //读写正常
+
+}
 //unfinish
 void FileSystem::initMultiuser()
 {
     user_num=0;
-    multiuser=new MultiUser[MAX_USER_COUNT];
+    multiuser=new MultiUser[USER_COUNT_MAX];
     if ((file_pointer = fopen(MUTIUSER_ACCOUNT,"rb+"))==NULL)
     {   
         file_pointer = fopen(MUTIUSER_ACCOUNT,"wb+");
         file_pointer = fopen(MUTIUSER_ACCOUNT,"rb+");
     }
     rewind(file_pointer); //定位到文件头
-    for(int i=0;i<MAX_USER_COUNT;++i)
+    for(int i=0;i<USER_COUNT_MAX;++i)
     {   
         if(fread(&multiuser[i],sizeof(MultiUser),1,file_pointer)!=1)
             break;
@@ -286,4 +367,23 @@ void FileSystem::userLogin()
 void FileSystem::printCurrentPath()
 {
 	cout<<current_path<<"$ ";
+}
+
+void FileSystem::printProgressBar()
+{
+    int i = 0;
+	char bar[102];
+	const char *lable = "|/-\\";
+	bar[0] = 0;
+	while (i <= 100)
+	{
+		printf("[%-100s][%d%%][%c]\r", bar, i, lable[i%4]);
+		fflush(stdout);
+	    bar[i] = '#';
+		i++;
+		bar[i] = 0;
+		usleep(100000);
+	}
+	printf("\n");
+    return;
 }

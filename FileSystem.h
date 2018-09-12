@@ -89,7 +89,7 @@ struct Inode{
 
 //每一个目录项
 struct DirectoryEntry{
-    char directory_name[FILE_NAME_MAX];//文件名长度最大支持99个字符
+    char directory_name[FILE_NAME_MAX];//文件名长度最大支持255个字符
     unsigned int inode_identifier;//文件inode索引号
 };
 
@@ -109,6 +109,7 @@ private:
 	bool inodelist[INODE_COUTN];
     unsigned int blocklist[BLOCK_COUNT];
 	Inode current_inode;//当前inode的列表，用链表还是数组有待验证
+	DirectoryEntry directory_entry;
     bool* block_bitmap;
 
 	//读取文件时候指针的移动

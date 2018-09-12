@@ -6,4 +6,4 @@ FileSystem.o : FileSystem.h FileSystem.cpp
 	g++ -c FileSystem.cpp
 
 clean :
-	rm main.o FileSystem.o build
+	rm main.o FileSystem.o build FileSystem

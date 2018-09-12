@@ -46,9 +46,10 @@ void FileSystem::initFileSyatem()
     total_inode_offset=single_inode_offset*INODE_COUTN;
     single_datablock_offset=BLOCK_SIZE;
     total_datablock_offset=single_datablock_offset*BLOCK_COUNT;
-    //printProgressBar();//到时候可能加一些多进程的东西进去
+    printProgressBar();//到时候可能加一些多进程的东西进去
     if ((file_pointer = fopen(SYSTEM_NAME,"rb+"))==NULL)
     {   
+        //初始化superblock
         superblock.block_size=BLOCK_SIZE;
         superblock.block_count=BLOCK_COUNT;
         superblock.block_used=1;//分配一个给root
@@ -58,26 +59,27 @@ void FileSystem::initFileSyatem()
         superblock.inode_free=superblock.inode_count-superblock.block_used;
         superblock.root_inode=0;//要不要从0开始算呢
         file_pointer = fopen(SYSTEM_NAME,"wb+");
-        fwrite(&superblock,sizeof(SuperBlock),1,file_pointer); //初始化superblock
+        fwrite(&superblock,sizeof(SuperBlock),1,file_pointer); 
         
+        //初始化inodelist
         inodelist[0]=true;//root
         for(int i=1;i<INODE_COUTN;++i)
             inodelist[i]=false;
         fwrite(&inodelist,sizeof(inodelist),1,file_pointer);
 
-
+        //初始化blocklist
         blocklist[0]=-1;//代表已经到了文件末尾
         for(int i=1;i<BLOCK_COUNT;++i)
             blocklist[i]=0;
         fwrite(&blocklist,sizeof(blocklist),1,file_pointer);
 
-        //root
+        //初始化根目录的inode
         current_inode.block_id=0;
         current_inode.file_type=1;
         current_inode.link_count=1;
         current_inode.own_id=0;
         current_inode.group_id=0;
-        strcpy(current_inode.authority,"drwx------");
+        strcpy(current_inode.authority,"drwxrw-r--");
         current_inode.file_size=sizeof(DirectoryEntry);
         current_inode.block_used_byfile=1;
         current_inode.block_id=0;
@@ -97,24 +99,25 @@ void FileSystem::initFileSyatem()
             fwrite(&current_inode,sizeof(Inode),1,file_pointer);
         }
 
+        strcpy(directory_entry.directory_name,".");
+        directory_entry.inode_identifier=0;
+        fwrite(&directory_entry,sizeof(BLOCK_SIZE),1,file_pointer);
         char temp[BLOCK_SIZE];
         for (int i = 0; i < BLOCK_SIZE; i++)
-            temp[i]='-';
-        for (int i = 0; i < BLOCK_COUNT; i++)  
+            temp[i]='0';
+        for (int i = 1; i < BLOCK_COUNT; i++)  
             fwrite(&temp,sizeof(temp),1,file_pointer);
     }
-    //仅做测试
-    rewind(file_pointer); 
-    fread(&superblock,sizeof(SuperBlock),1,file_pointer);//写入成功
-    fread(&inodelist,sizeof(inodelist),1,file_pointer);//写入成功
-    fread(&blocklist,sizeof(blocklist),1,file_pointer);//写入成功
-    fread(&current_inode,sizeof(Inode),1,file_pointer);//写入成功
-    fread(&current_inode,sizeof(Inode),1,file_pointer);
-    for(int i=0;i<INODE_COUTN;++i)
-        fread(&current_inode,sizeof(Inode),1,file_pointer);
-    char buf[90000];
-    fread(&buf,sizeof(buf),1,file_pointer); //读写正常
-
+    else
+    {
+        rewind(file_pointer); 
+        fread(&superblock,sizeof(SuperBlock),1,file_pointer);//写入成功
+        fread(&inodelist,sizeof(inodelist),1,file_pointer);//写入成功
+        fread(&blocklist,sizeof(blocklist),1,file_pointer);//写入成功
+        fread(&current_inode,sizeof(Inode),1,file_pointer);//初始化的时候需要把根目录的inode找下来
+    }
+    current_path="/";
+    cout<<"初始化成功"<<endl;
 }
 //unfinish
 void FileSystem::initMultiuser()

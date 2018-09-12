@@ -11,7 +11,7 @@ using namespace std;
 
 #define CMD_COUNT         22
 #define USER_COUNT_MAX    100
-#define FILE_NAME_MAX	  256		//文件名最大长度255
+#define FILE_NAME_MAX	  124		//文件名最大长度25
 #define BLOCK_SIZE        1024
 #define BLOCK_COUNT		  102400 //块的数目，要不要把目录项这种放进计数里面
 #define INODE_COUTN		  102400 //inode的数目，占的空间的确是有点大
@@ -88,6 +88,7 @@ struct Inode{
 };
 
 //每一个目录项
+//每一个data块可以容纳8个目录项
 struct DirectoryEntry{
     char directory_name[FILE_NAME_MAX];//文件名长度最大支持255个字符
     unsigned int inode_identifier;//文件inode索引号
@@ -108,7 +109,9 @@ private:
 	//这三个量要看看
 	bool inodelist[INODE_COUTN];
     unsigned int blocklist[BLOCK_COUNT];
-	Inode current_inode;//当前inode的列表，用链表还是数组有待验证
+	Inode current_inode;
+	char current_data_block[BLOCK_SIZE];
+	DirectoryEntry current_directory_block[BLOCK_SIZE/sizeof(DirectoryEntry)];
 	DirectoryEntry directory_entry;
     bool* block_bitmap;
 
@@ -133,11 +136,15 @@ public:
     //command
     void userRegister();
     void userLogin();
+	void help();
+	void ls();
 
 
     //
     void printCurrentPath();
 	void printProgressBar();
+	void readinode(unsigned int inode_id);
+	void readBlock(unsigned int block_id,unsigned int type);
 };
 
 #endif 

@@ -109,7 +109,8 @@ private:
 	//这三个量要看看
 	bool inodelist[INODE_COUTN];
     unsigned int blocklist[BLOCK_COUNT];
-	Inode current_inode;
+	Inode current_directory_inode;
+	Inode current_data_inode;
 	char current_data_block[BLOCK_SIZE];
 	DirectoryEntry current_directory_block[BLOCK_SIZE/sizeof(DirectoryEntry)];
 	DirectoryEntry directory_entry;

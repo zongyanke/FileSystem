@@ -26,10 +26,10 @@ FileSystem::FileSystem()
     cmd[21]="register";
     initFileSyatem();
     readBlock(0,1);
-    readinode(0);
+    //readinode(0);
 	// cout<<"请输入命令选择注册或者登陆：";
     // while(true)
-	//  	command();
+    //  	command();
 }
 FileSystem::~FileSystem()
 {
@@ -77,39 +77,44 @@ void FileSystem::initFileSyatem()
         cout<<ftell(file_pointer)<<"   01"<<endl;
         
         //初始化根目录的inode
-        current_inode.block_id=0;
-        current_inode.file_type=1;
-        current_inode.link_count=1;
-        current_inode.own_id=0;
-        current_inode.group_id=0;
-        strcpy(current_inode.authority,"drwxrw-rw-");
-        current_inode.file_size=sizeof(DirectoryEntry);
-        current_inode.block_used_byfile=1;
-        current_inode.block_id=0;
-        fwrite(&current_inode,sizeof(current_inode),1,file_pointer);
+        current_directory_inode.block_id=0;
+        current_directory_inode.file_type=1;
+        current_directory_inode.link_count=1;
+        current_directory_inode.own_id=0;
+        current_directory_inode.group_id=0;
+        strcpy(current_directory_inode.authority,"drwxrw-rw-");
+        current_directory_inode.file_size=sizeof(DirectoryEntry);
+        current_directory_inode.block_used_byfile=1;
+        current_directory_inode.block_id=0;
+        fwrite(&current_directory_inode,sizeof(current_directory_inode),1,file_pointer);
+        Inode temp_inode;
         for(int i=1;i<INODE_COUTN;++i)
         {
-            current_inode.block_id=-1;
-            current_inode.file_type=-1;
-            current_inode.link_count=-1;
-            current_inode.own_id=-1;
-            current_inode.group_id=-1;
+            temp_inode.block_id=-1;
+            temp_inode.file_type=-1;
+            temp_inode.link_count=-1;
+            temp_inode.own_id=-1;
+            temp_inode.group_id=-1;
             char authority[11]="----------";
-            strcpy(current_inode.authority,authority);
-            current_inode.file_size=sizeof(DirectoryEntry);
-            current_inode.block_used_byfile=1;
-            current_inode.block_id=0;
-            fwrite(&current_inode,sizeof(Inode),1,file_pointer);
+            strcpy(temp_inode.authority,authority);
+            temp_inode.file_size=sizeof(DirectoryEntry);
+            temp_inode.block_used_byfile=1;
+            temp_inode.block_id=0;
+            fwrite(&temp_inode,sizeof(Inode),1,file_pointer);
         }
         cout<<ftell(file_pointer)<<"   "<<superblock_offset+inodelist_offset+blocklist_offset+total_inode_offset<<endl;
 
+        //需要修改
         strcpy(directory_entry.directory_name,"/");
         directory_entry.inode_identifier=1;
-        fwrite(&directory_entry,sizeof(DirectoryEntry),1,file_pointer);
+        fwrite(&directory_entry,sizeof(directory_entry),1,file_pointer);
+        strcpy(directory_entry.directory_name,"mu.txt");
+        directory_entry.inode_identifier=0;
+        fwrite(&directory_entry,sizeof(directory_entry),1,file_pointer);
 
         char temp[BLOCK_SIZE];
         for (int i = 0; i < BLOCK_SIZE; i++)
-            temp[i]='0';
+            temp[i]='*';
         for (int i = 1; i < BLOCK_COUNT; i++)  
             fwrite(&temp,sizeof(temp),1,file_pointer);
     }
@@ -119,7 +124,7 @@ void FileSystem::initFileSyatem()
         fread(&superblock,sizeof(SuperBlock),1,file_pointer);
         fread(&inodelist,sizeof(inodelist),1,file_pointer);
         fread(&blocklist,sizeof(blocklist),1,file_pointer);
-        fread(&current_inode,sizeof(Inode),1,file_pointer);//初始化的时候需要把根目录的inode找下来
+        fread(&current_directory_inode,sizeof(Inode),1,file_pointer);//初始化的时候需要把根目录的inode找下来
     }
     current_path="/";
     cout<<"初始化成功"<<endl;
@@ -381,7 +386,7 @@ void FileSystem::help()
 
 void FileSystem::ls()
 {
-    string* directory;
+    cout<<"come in ls"<<endl;
 
 }
 
@@ -410,14 +415,28 @@ void FileSystem::printProgressBar()
     return;
 }
 
+//迟一些是不是可以把读写inode，以及读写数据块放在同一个函数里面增加代码复用性
+//读inode成功
 void FileSystem::readinode(unsigned int inode_id)
 {
     long offset=superblock_offset+inodelist_offset+blocklist_offset;
     offset=offset+inode_id*sizeof(Inode);
+    Inode temp_inode;
     fseek(file_pointer,offset,SEEK_SET);
-    fread(&current_inode,sizeof(Inode),1,file_pointer);
-    cout<<current_inode.authority<<endl;
+    fread(&temp_inode,sizeof(Inode),1,file_pointer);
+    if(temp_inode.file_type==0)
+    {
+        fseek(file_pointer,offset,SEEK_SET);
+        fread(&current_data_inode,sizeof(Inode),1,file_pointer);
+    }
+    else
+    {
+        fseek(file_pointer,offset,SEEK_SET);
+        fread(&current_directory_inode,sizeof(Inode),1,file_pointer);
+    }
+    cout<<current_directory_inode.authority<<endl;
 }
+//读block成功
 //可以读取数据块，包括目录数据块以及文件数据块
 void FileSystem::readBlock(unsigned int block_id,unsigned int type)
 {
@@ -430,11 +449,15 @@ void FileSystem::readBlock(unsigned int block_id,unsigned int type)
     }
     else
     {
+        //用特殊字符来标志读到结尾
         fseek(file_pointer,offset,SEEK_SET);
         for(int i=0;i<BLOCK_SIZE/sizeof(DirectoryEntry);++i)
         {
             fread(&current_directory_block[i],sizeof(DirectoryEntry),1,file_pointer);
-            //cout<<current_directory_block[i].directory_name<<endl;
+            if(current_directory_block[i].directory_name[0]=='*')
+                break;
+            cout<<current_directory_block[i].directory_name<<endl;
+            cout<<i<<endl;
         }
     }
 }
